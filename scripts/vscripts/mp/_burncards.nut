@@ -362,6 +362,9 @@ function RunBurnCardFunctions( player, cardRef )
 
 function ApplyAmpedTactical( player, cardRef )
 {
+    if( player.IsTitan() )
+        player.WaitSignal("OnLeftTitan"); wait 0.5
+
     local mods = []
 
     switch( cardRef )
@@ -698,6 +701,12 @@ function BurnCardPlayerRespawned_Threaded( player )
     while ( HasCinematicFlag( player, CE_FLAG_INTRO ) || HasCinematicFlag( player, CE_FLAG_CLASSIC_MP_SPAWNING ) || HasCinematicFlag( player, CE_FLAG_WAVE_SPAWNING ) )
         player.WaitSignal( "CE_FLAGS_CHANGED" );
 
+    if ( GAMETYPE == COOPERATIVE)
+    {
+        while( ArrayContains( level.dropshipSpawnPlayerList[level.nv.attackingTeam], player ) )
+            wait 0.1
+    }
+
     printt( "BurnCardPlayerRespawned_Threaded" )
 
     cardIndex = GetPlayerBurnCardOnDeckIndex( player )
@@ -895,6 +904,9 @@ function ApplyTitanWeaponBurnCard( titan, cardRef )
     local weaponData = GetBurnCardWeapon(cardRef)
     local weapons = titan.GetMainWeapons()
 
+    if ( !( cardData.ctFlags & CT_TITAN_WPN ) )
+        return
+
     while( weaponToTake == null )
     {
         foreach( weapon in weapons )
@@ -973,7 +985,7 @@ function ApplyTitanBurnCards_Threaded( titan )
 
     local ref
 
-    if ( GetPlayerActiveBurnCard( player ) )
+    if ( !GetPlayerActiveBurnCard( player ) )
     {
         local cardIndex = GetPlayerBurnCardOnDeckIndex(player)
         ref = GetBurnCardFromSlot( player, cardIndex )
@@ -998,8 +1010,7 @@ function ApplyTitanBurnCards_Threaded( titan )
             if ( DoesPlayerHaveActiveNonTitanBurnCard( player ) )
                 return
         }
-    } else
-        ref = GetPlayerActiveBurnCard( player )
+    }
 
     if ( !ref )
         return
