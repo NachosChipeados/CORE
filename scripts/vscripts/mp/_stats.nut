@@ -16,7 +16,7 @@ function main() {
     AddDamageCallback("npc_titan", OnDamaged)
     AddDamageCallback("npc_spectre", OnDamaged)
     AddCallback_OnRodeoStarted(OnRodeoStarted)
-    GM_AddEndRoundFunc( Stats_EndRound )
+    AddCallback_GameStateEnter(eGameState.WinnerDetermined, Stats_EndRound )
     AddCallback_OnWeaponAttack(OnWeaponAttack)
     Globalize(Stats_IncrementStat)
     Globalize(UpdatePlayerStat)
@@ -75,9 +75,10 @@ function Stats_EndRound()
     if( !IsRoundBasedGameOver() && IsRoundBased() )
         return
 
+    local currentGameMode = GameRules.GetGameMode()
+
     foreach( player in GetPlayerArray() )
     {
-
         if( !IsValid( player ) )
             continue
 
@@ -89,9 +90,16 @@ function Stats_EndRound()
 	    local playersArray = GetSortedPlayers( compareFunc, killedTeam )
 	    local playerPlacementOnTeam = GetIndexInArray( playersArray, player )
 
-        Stats_IncrementStat(player,"game_stats","game_completed", 1.0)
+        Stats_IncrementStat(player,"game_stats","game_completed", 1)
         Stats_IncrementStat( player, "game_stats", "game_completed_total", 1.0 )
-        Stats_IncrementStat( player, "game_stats", "mode_played", 1.0 )
+
+        local modePlayedStat = "mode_played_" + currentGameMode
+        Stats_IncrementStat( player, "game_stats", modePlayedStat, 1.0 )
+
+        if ( killedTeam == TEAM_IMC )
+            Stats_IncrementStat( player, "game_stats", "games_completed_as_imc", 1.0 )
+        else
+            Stats_IncrementStat( player, "game_stats", "games_completed_as_militia", 1.0 )
 
         // check for mvp and top 3
         if(playerPlacementOnTeam == 0)
@@ -103,48 +111,56 @@ function Stats_EndRound()
         if(playerPlacementOnTeam <= 3)
             Stats_IncrementStat(player,"game_stats","top3OnTeam",1.0)
 
-        local currentGamemode = GameRules.GetGameMode()
-
-        switch( currentGameMode )
+        if ( GetCinematicMode() )
         {
-            case ATTRITION:
-                Stats_IncrementStat( player, "game_stats", "mode_played_at", 1.0 )
-            case LAST_TITAN_STANDING:
-                Stats_IncrementStat( player, "game_stats", "mode_played_lts", 1.0 )
-            case CAPTURE_THE_FLAG:
-                Stats_IncrementStat( player, "game_stats", "mode_played_ctf", 1.0 )
-            case CAPTURE_POINT:
-                Stats_IncrementStat( player, "game_stats", "mode_played_cp", 1.0 )
-            case TEAM_DEATHMATCH:
-                Stats_IncrementStat( player, "game_stats", "mode_played_tdm", 1.0 )
-            case MARKED_FOR_DEATH:
-                Stats_IncrementStat( player, "game_stats", "mode_played_mfd", 1.0 )
-            case WINGMAN_LAST_TITAN_STANDING:
-                Stats_IncrementStat( player, "game_stats", "mode_played_wlts", 1.0 )
+            Stats_IncrementStat( player, "game_stats", "game_completed_total_campaign", 1.0 )
+
+            local levelIndex = GetCampaignLevelIndex( GetMapName() )
+
+            local team = killedTeam
+
+            if ( team == TEAM_IMC )
+                player.SetPersistentVar( "campaignMapFinishedIMC[" + levelIndex + "]", 1 )
+            else
+                player.SetPersistentVar( "campaignMapFinishedMCOR[" + levelIndex + "]", 1 )
         }
+
+        local winStreak = player.GetPersistentVar( "winStreak" )
+        local highestWinStreak = player.GetPersistentVar( "highestWinStreak" )
 
         if( GetCurrentWinner() == player.GetTeam() )
         {
-            Stats_IncrementStat(player,"game_stats","game_won",1.0)
-            local lastDailyWin = player.GetPersistentVar("lastDailyMatchVictory")
-
-            switch( currentGameMode )
+            if ( GetCinematicMode() )
             {
-                case ATTRITION:
-                    Stats_IncrementStat( player, "game_stats", "mode_won_at", 1.0 )
-                case LAST_TITAN_STANDING:
-                    Stats_IncrementStat( player, "game_stats", "mode_won_lts", 1.0 )
-                case CAPTURE_THE_FLAG:
-                    Stats_IncrementStat( player, "game_stats", "mode_won_ctf", 1.0 )
-                case CAPTURE_POINT:
-                    Stats_IncrementStat( player, "game_stats", "mode_won_cp", 1.0 )
-                case TEAM_DEATHMATCH:
-                    Stats_IncrementStat( player, "game_stats", "mode_won_tdm", 1.0 )
-                case MARKED_FOR_DEATH:
-                    Stats_IncrementStat( player, "game_stats", "mode_won_mfd", 1.0 )
-                case WINGMAN_LAST_TITAN_STANDING:
-                    Stats_IncrementStat( player, "game_stats", "mode_won_wlts", 1.0 )
+                local levelIndex = GetCampaignLevelIndex( GetMapName() )
+
+                local team = killedTeam
+
+                if ( team == TEAM_IMC )
+                    player.SetPersistentVar( "campaignMapWonIMC[" + levelIndex + "]", 1 )
+                else
+                    player.SetPersistentVar( "campaignMapWonMCOR[" + levelIndex + "]", 1 )
             }
+
+            Stats_IncrementStat( player, "game_stats", "mode_won_" + GameRules.GetGameMode(), 1.0 )
+
+            if ( winStreak == null )
+                winStreak = 0
+
+            winStreak += 1
+
+            if ( killedTeam == TEAM_IMC )
+                Stats_IncrementStat( player, "game_stats", "games_won_as_imc", 1.0 )
+            else
+                Stats_IncrementStat( player, "game_stats", "games_won_as_militia", 1.0 )
+
+
+            Stats_IncrementStat(player,"game_stats","game_won",1.0)
+
+            local modeWonStat = "mode_won_" + currentGameMode
+            Stats_IncrementStat( player, "game_stats", modeWonStat, 1.0 )
+
+            local lastDailyWin = player.GetPersistentVar("lastDailyMatchVictory")
 
             if ( Daily_GetDay() > lastDailyWin )
             {
@@ -155,9 +171,30 @@ function Stats_EndRound()
         }
         else
         {
+            local imcScore = GameRules.GetTeamScore( TEAM_IMC )
+            local militiaScore = GameRules.GetTeamScore( TEAM_MILITIA )
+
+            if ( imcScore != militiaScore )
+            {
+                winStreak = 0
+                player.SetPersistentVar("winStreakIsDraws", 0)
+            }
+            else
+                player.SetPersistentVar("winStreakIsDraws", 1)
+
+            Stats_IncrementStat( player, "game_stats", "mode_played_" + GameRules.GetGameMode(), 1.0 )
+
             Stats_IncrementStat(player,"game_stats","game_lost",1.0)
             AddCoins( player, COIN_REWARD_MATCH_COMPLETION, eCoinRewardType.MATCH_COMPLETION )
         }
+
+        if ( highestWinStreak == null )
+            highestWinStreak = 0
+
+        if ( winStreak > highestWinStreak )
+            player.SetPersistentVar( "highestWinStreakEver", winStreak )
+
+        player.SetPersistentVar( "winStreak", winStreak )
 
         local playerKills = player.GetKillCount()
         local npcKills = player.GetNPCKillCount()
@@ -206,6 +243,19 @@ function Stats_EndRound()
         player.SetPersistentVar( "kdratiopvp_match[0]", pvpMatchRatio )
         player.SetPersistentVar( "kdratio_lifetime", lifetimeKdRatio )
         player.SetPersistentVar( "kdratiopvp_lifetime", lifetimePvpRatio )
+
+        if( GameRules.GetGameMode() == ATTRITION && player.GetAssaultScore() >= 100 )
+        {
+            Stats_IncrementStat( player, "game_stats", "timesScored100AttritionPoints", playerKills )
+            Stats_IncrementStat( player, "game_stats", "timesScored100AttritionPoints_total", playerKills )
+        }
+
+        local totalKillCount = player.GetKillCount() + player.GetNPCKillCount()
+        if( totalKillCount > player.GetDeathCount() * 2 )
+            Stats_IncrementStat( player, "game_stats", "times_kd_2_to_1_by_mode", 1.0 )
+
+        if( player.GetKillCount() > player.GetDeathCount() * 2 )
+            Stats_IncrementStat( player, "game_stats", "times_kd_2_to_1_pvp_by_mode", 1.0 )
     }
 }
 
@@ -284,118 +334,123 @@ function OnWeaponAttack(player,weapon,weaponName,shotsFired) {
 }
 
 
-function HandleDistanceAndTimeStats() {
+function HandleDistanceAndTimeStats()
+{
     if(IsLobby())
         return
 
-    while(GetGameState() < eGameState.Playing )
+    while( GetGameState() < eGameState.Playing )
         wait 0
+
+    foreach(player in GetPlayerArray())
+        thread DistanceAndTimeStats_Think( player )
+}
+
+
+function DistanceAndTimeStats_Think( player )
+{
+    player.EndSignal( "Disconnected" )
 
     local lastTickTime = Time()
 
-    while(true) {
+    for(;;)
+    {
+        if(!IsValid(player))
+            continue
 
-        foreach(player in GetPlayerArray())
-        {
-            if(!IsValid(player))
-                continue
-            if ( !("lastPosForDistanceStatValid" in player.s) ) {
-                // Value hasn't been initialized yet, likely player just joined.
-                // Initialize it now or just skip this player for this tick.
-                // Initializing here might be safer:
-                player.s.lastPosForDistanceStatValid <- false
-                continue // Skip distance calculation for this tick
-            }
-
-            if ( player.s.lastPosForDistanceStatValid ) {
-                local distInches = Distance2D( player.s.lastPosForDistanceStat, player.GetOrigin() )
-				local distMiles = distInches / 63360.0
-                // printt("distMiles: " + distMiles)
-                Stats_IncrementStat( player, "distance_stats", "total", distMiles )
-                if(player.IsTitan()) {
-                    Stats_IncrementStat( player, "distance_stats", "asTitan", distMiles )
-	                local titanDataTable = GetPlayerClassDataTable( player, "titan" )
-	                local titanSettings = titanDataTable.playerSetFile
-		            titanSettings = titanSettings.slice( 0, 1 ).toupper() + titanSettings.slice( 1, titanSettings.len() )
-                    Stats_IncrementStat( player, "distance_stats", "as" + titanSettings, distMiles )
-                } else {
-                    Stats_IncrementStat( player, "distance_stats", "asPilot", distMiles )
-                }
-
-                if(player.IsWallRunning()) {
-                    Stats_IncrementStat( player, "distance_stats", "wallrunning", distMiles )
-                }
-                else if ( player.IsZiplining() )
-                    Stats_IncrementStat( player, "distance_stats", "ziplining", distMiles )
-				else if ( !player.IsOnGround() )
-					Stats_IncrementStat( player, "distance_stats", "inAir", distMiles )
-
-                // GetEnemyRodeoPlayer(titan)
-                // GetFriendlyRodeoPlayer(titan)
-
-                if ( IsValid( player.GetTitanSoulBeingRodeoed() ) && IsValid( player.GetTitanSoulBeingRodeoed().GetBossPlayer() ) )
-                {
-                    local soul = player.GetTitanSoulBeingRodeoed()
-                    local titan = soul.GetBossPlayer()
-                    if ( titan.GetTeam() == player.GetTeam() )
-                        Stats_IncrementStat( player, "distance_stats", "onFriendlyTitan", distMiles )
-                    else
-                        Stats_IncrementStat( player, "distance_stats", "onEnemyTitan", distMiles )
-                }
-            }
-            player.s.lastPosForDistanceStat = player.GetOrigin()
-            player.s.lastPosForDistanceStatValid = true
+        if ( !("lastPosForDistanceStatValid" in player.s) ) {
+            // Value hasn't been initialized yet, likely player just joined.
+            // Initialize it now or just skip this player for this tick.
+            // Initializing here might be safer:
+            player.s.lastPosForDistanceStatValid <- false
+            continue // Skip distance calculation for this tick
         }
-
 
         local timeSeconds = Time() - lastTickTime
 		local timeHours = timeSeconds / 3600.0
 
-        foreach(player in GetPlayerArray())
-		{
-			if ( timeSeconds <= 0 )
-				break
-            Stats_IncrementStat(player,"game_stats","hoursPlayed",timeHours)
-            Stats_IncrementStat( player, "time_stats", "hours_total", timeHours )
-            if(player.IsTitan()) {
-                Stats_IncrementStat( player, "time_stats", "hours_as_titan",  timeHours )
+        if ( player.s.lastPosForDistanceStatValid )
+        {
+            local distInches = Distance2D( player.s.lastPosForDistanceStat, player.GetOrigin() )
+            local distMiles = distInches / 63360.0
+            Stats_IncrementStat( player, "distance_stats", "total", distMiles )
+
+            if(player.IsTitan())
+            {
+                Stats_IncrementStat( player, "distance_stats", "asTitan", distMiles )
                 local titanDataTable = GetPlayerClassDataTable( player, "titan" )
                 local titanSettings = titanDataTable.playerSetFile
-                Stats_IncrementStat( player, "time_stats", "hours_as_" + titanSettings, timeHours )
+                titanSettings = titanSettings.slice( 0, 1 ).toupper() + titanSettings.slice( 1, titanSettings.len() )
+                Stats_IncrementStat( player, "distance_stats", "as" + titanSettings, distMiles )
+            } else {
+                Stats_IncrementStat( player, "distance_stats", "asPilot", distMiles )
             }
-            else
-                Stats_IncrementStat( player, "time_stats", "hours_as_pilot", timeHours )
-            local state = ""
-			if ( player.IsWallHanging() )
-				Stats_IncrementStat( player, "time_stats", "hours_wallhanging", timeHours )
-            else if(player.IsWallRunning())
-                Stats_IncrementStat( player, "time_stats", "hours_wallrunning", timeHours )
-            else if (!IsAlive(player))
-                Stats_IncrementStat( player, "time_stats", "hours_dead", timeHours )
+
+            if(player.IsWallRunning())
+                Stats_IncrementStat( player, "distance_stats", "wallrunning", distMiles )
+            else if ( player.IsZiplining() )
+                Stats_IncrementStat( player, "distance_stats", "ziplining", distMiles )
             else if ( !player.IsOnGround() )
-			    Stats_IncrementStat( player, "time_stats", "hours_inAir", timeHours )
-            local activeWeapon = player.GetActiveWeapon()
+                Stats_IncrementStat( player, "distance_stats", "inAir", distMiles )
 
-            if ( IsValid( activeWeapon ) ) {
-                local weaponName = activeWeapon.GetClassname()
-                Stats_IncrementStat( player, "weapon_stats", "hoursUsed" ,timeHours, weaponName )
-                foreach( weapon in player.GetMainWeapons() )
-				{
-                    Stats_IncrementStat( player, "weapon_stats", "hoursEquipped" ,timeHours, weaponName )
-                }
+            if ( IsValid( player.GetTitanSoulBeingRodeoed() ) && IsValid( player.GetTitanSoulBeingRodeoed().GetBossPlayer() ) )
+            {
+                local soul = player.GetTitanSoulBeingRodeoed()
+                local titan = soul.GetBossPlayer()
+
+                if ( titan.GetTeam() == player.GetTeam() )
+                    Stats_IncrementStat( player, "distance_stats", "onFriendlyTitan", distMiles )
+                else
+                    Stats_IncrementStat( player, "distance_stats", "onEnemyTitan", distMiles )
             }
-
-            local ordnanceWeapon = player.GetOffhandWeapon( OFFHAND_RIGHT )
-
-            if ( IsValid( ordnanceWeapon ) )
-                Stats_IncrementStat( player, "weapon_stats", "hoursUsed" ,timeHours, ordnanceWeapon )
         }
 
-		lastTickTime = Time()
+        if ( timeSeconds <= 0 )
+            break
+        Stats_IncrementStat(player,"game_stats","hoursPlayed",timeHours)
+        Stats_IncrementStat( player, "time_stats", "hours_total", timeHours )
+        if(player.IsTitan())
+        {
+            Stats_IncrementStat( player, "time_stats", "hours_as_titan",  timeHours )
+            local titanDataTable = GetPlayerClassDataTable( player, "titan" )
+            local titanSettings = titanDataTable.playerSetFile
+            Stats_IncrementStat( player, "time_stats", "hours_as_" + titanSettings, timeHours )
+        }
+        else
+            Stats_IncrementStat( player, "time_stats", "hours_as_pilot", timeHours )
+        local state = ""
+        if ( player.IsWallHanging() )
+            Stats_IncrementStat( player, "time_stats", "hours_wallhanging", timeHours )
+        else if(player.IsWallRunning())
+            Stats_IncrementStat( player, "time_stats", "hours_wallrunning", timeHours )
+        else if (!IsAlive(player))
+            Stats_IncrementStat( player, "time_stats", "hours_dead", timeHours )
+        else if ( !player.IsOnGround() )
+            Stats_IncrementStat( player, "time_stats", "hours_inAir", timeHours )
+        local activeWeapon = player.GetActiveWeapon()
+
+        if ( IsValid( activeWeapon ) ) {
+            local weaponName = activeWeapon.GetClassname()
+            Stats_IncrementStat( player, "weapon_stats", "hoursUsed" ,timeHours, weaponName )
+            foreach( weapon in player.GetMainWeapons() )
+            {
+                Stats_IncrementStat( player, "weapon_stats", "hoursEquipped" ,timeHours, weaponName )
+            }
+        }
+
+        local ordnanceWeapon = player.GetOffhandWeapon( OFFHAND_RIGHT )
+
+        if ( IsValid( ordnanceWeapon ) )
+            Stats_IncrementStat( player, "weapon_stats", "hoursUsed" ,timeHours, ordnanceWeapon )
+
+
+        player.s.lastPosForDistanceStat = player.GetOrigin()
+        player.s.lastPosForDistanceStatValid = true
+
         wait 0.25
+        lastTickTime = Time()
     }
 }
-
 
 function UpdateChallengeData(player,category,statName,value,weaponName)
 {
@@ -427,7 +482,10 @@ function UpdateChallengeData(player,category,statName,value,weaponName)
                 local xp = GetChallengeXPReward(challRef,tier,player)
 
                 if ( IsDailyChallenge(challRef) )
+                {
+                    Stats_IncrementStat( player, "misc_stats", "dailyChallengesCompleted", 1 )
                     AddCoins( player, COIN_REWARD_DAILY_CHALLENGE, eCoinRewardType.DAILY_CHALLENGE )
+                }
 
                 AddPlayerScore(player,"ChallengeCompleted",null,xp)
 
@@ -471,17 +529,14 @@ function Stats_IncrementStat( player, category, statName, value, weaponName = nu
     local fixedSaveVarInt
 	local timesPlayed = 0
     local mapName = GetMapName()
-    local gameMode = GameRules.GetGameMode()
+    local gameModeName = GameRules.GetGameMode()
+    local gameMode = PersistenceGetEnumIndexForItemName( "gameModes", gameModeName )
 
 	fixedSaveVar = var
     fixedSaveVarInt = var
 
-    local gameModeIndex = PersistenceGetEnumIndexForItemName( "gameModes", gameMode )
-    if(gameModeIndex != -1)
-    {
-        fixedSaveVar = StatStringReplace( fixedSaveVar, "%gamemode%", gameMode )
-        fixedSaveVarInt = StatStringReplace( fixedSaveVarInt, "%gamemode%", gameModeIndex )
-    }
+    fixedSaveVar = StatStringReplace( fixedSaveVar, "%gamemode%", gameMode )
+    fixedSaveVarInt = StatStringReplace( fixedSaveVarInt, "%gamemode%", gameMode )
 
     local mapNameIndex = PersistenceGetEnumIndexForItemName( "maps", mapName )
     if(mapNameIndex != -1)
@@ -490,16 +545,29 @@ function Stats_IncrementStat( player, category, statName, value, weaponName = nu
         fixedSaveVarInt = StatStringReplace( fixedSaveVarInt, "%mapname%", mapNameIndex )
     }
 
-    if( !StringContains( fixedSaveVar, "%gamemode%" ) || !StringContains( fixedSaveVar, "%mapname%" ) )
+    if ( fixedSaveVar == fixedSaveVarInt )
     {
         local currentValue = player.GetPersistentVar( fixedSaveVar )
+        if ( currentValue == null )
+            currentValue = 0
         player.SetPersistentVar( fixedSaveVar, currentValue + value )
-    }
-
-    if( !StringContains( fixedSaveVarInt, "%gamemode%" ) || !StringContains( fixedSaveVarInt, "%mapname%" ) )
+    } else
     {
-        local currentValue = player.GetPersistentVar( fixedSaveVarInt )
-        player.SetPersistentVar( fixedSaveVarInt, currentValue + value )
+        if( !StringContains( fixedSaveVar, "%gamemode%" ) || !StringContains( fixedSaveVar, "%mapname%" ) )
+        {
+            local currentValue = player.GetPersistentVar( fixedSaveVar )
+            if ( currentValue == null )
+                currentValue = 0
+            player.SetPersistentVar( fixedSaveVar, currentValue + value )
+        }
+
+        if( !StringContains( fixedSaveVarInt, "%gamemode%" ) || !StringContains( fixedSaveVarInt, "%mapname%" ) )
+        {
+            local currentValue = player.GetPersistentVar( fixedSaveVarInt )
+            if ( currentValue == null )
+                currentValue = 0
+            player.SetPersistentVar( fixedSaveVarInt, currentValue + value )
+        }
     }
 
     UpdateChallengeData( player, category, statName, value, weaponName )
@@ -533,7 +601,7 @@ function HandleKillStats( victim, attacker, damageInfo ) {
     local damageSource = damageInfo.GetDamageSourceIdentifier()
     local playerPetTitan = null
 
-    if ( IsCoopMatch() )
+    if ( GAMETYPE == COOPERATIVE )
     {
         if ( attacker.IsTurret() )
         {
@@ -544,6 +612,23 @@ function HandleKillStats( victim, attacker, damageInfo ) {
 
             Stats_IncrementStat( bossPlayer, "kills_stats", "coopChallenge_Turret_Kills", 1.0 )
         }
+
+        if ( attacker.IsNPC() && IsSniperSpectre( attacker ) )
+        {
+            local damageHistory = attacker.s.recentDamageHistory
+
+            foreach( entry in damageHistory )
+            {
+                local attackerWeakRef = entry.attackerWeakRef
+
+                if ( !IsValid( attackerWeakRef ) )
+                    continue
+
+                if ( attackerWeakRef.IsPlayer() )
+                    Stats_IncrementStat( attackerWeakRef, "kills_stats", "coopChallenge_SuicideSpectre_Kills", 1.0 )
+            }
+        }
+
 
         if ( !attacker.IsPlayer() )
             return
@@ -558,7 +643,7 @@ function HandleKillStats( victim, attacker, damageInfo ) {
             }
         }
 
-        if ( victim.IsNPC() && victim.IsCloaked() )
+        if ( victim.IsNPC() && CloakedDroneIsSquadClaimed( victim.kv.squadname ) )
             Stats_IncrementStat( attacker, "kills_stats", "coopChallenge_CloakDrone_Kills", 1.0 )
 
         if ( victim.IsDropship() )
@@ -622,11 +707,10 @@ function HandleKillStats( victim, attacker, damageInfo ) {
     }
 
     if ( victim.IsPlayer() || victim.GetBossPlayer() )
-	{
 		Stats_IncrementStat( attacker, "kill_stats", "totalPVP", 1.0 )
-	}
 
-    if ( attacker.IsPlayer() ) {
+    if ( attacker.IsPlayer() )
+    {
         Stats_IncrementStat( attacker, "kills_stats", "total",  1 )
         if(victim.IsPlayer())
             Stats_IncrementStat( attacker, "game_stats", "pvp_kills_by_mode", 1 )
@@ -640,7 +724,8 @@ function HandleKillStats( victim, attacker, damageInfo ) {
             Stats_IncrementStat( attacker, "kills_stats", "spectres", 1 )
         if ( victim.IsSoldier() )
             Stats_IncrementStat( attacker, "kills_stats", "grunts", 1 )
-        if ( victim.IsTitan() ) {
+        if ( victim.IsTitan() )
+        {
             Stats_IncrementStat( attacker , "kills_stats", "titans", 1 )
             Stats_IncrementStat( attacker, "kills_stats", "totalTitans", 1 )
         }
@@ -653,13 +738,22 @@ function HandleKillStats( victim, attacker, damageInfo ) {
          if(GetActiveBurnCard( attacker ) != null)
             Stats_IncrementStat( attacker, "kills_stats", "totalWhileUsingBurnCard", 1.0 )
 
+        if( GetGameState() == eGameState.Epilogue )
+            Stats_IncrementStat( attacker, "kills_stats", "evacuatingEnemies", 1.0 )
 
+        if( damageInfo.GetDamageSourceIdentifier() == eDamageSourceId.nuclear_core && victim.IsPlayer() )
+            Stats_IncrementStat( attacker, "kills_stats", "nuclearCore", 1.0 )
     }
+
     local victimIsPilot = IsPilot( victim )
     local victimIsTitan = victim.IsTitan()
 
 
-    if(attacker.IsTitan()) {
+    if(attacker.IsTitan())
+    {
+        if( attacker.GetDoomedState() )
+            Stats_IncrementStat( attacker, "kills_stats", "totalTitansWhileDoomed", 1 )
+
         local titanDataTable = GetPlayerClassDataTable( attacker, "titan" )
         local titanSettings = titanDataTable.playerSetFile
         local titanName = StringReplaceAll( titanSettings, "titan_", "" )
@@ -743,7 +837,6 @@ function HandleKillStats( victim, attacker, damageInfo ) {
 	// titanKillsAsTitan
 	if ( victimIsTitan && attacker.IsTitan() )
 		Stats_IncrementStat( player, "kills_stats", "titanKillsAsTitan",  1.0 )
-
 }
 
 function HandleDeathStats( victim, attacker, damageInfo ) {
@@ -824,6 +917,8 @@ function HandleWeaponKillStats( victim, attacker, damageInfo ) {
 			    Stats_IncrementStat( attacker, "weapon_kill_stats", "spectres", 1.0 ,source)
 		    if ( victim.IsSoldier() )
 			    Stats_IncrementStat( attacker, "weapon_kill_stats", "grunts", 1.0,source )
+            if ( victim.IsMarvin() )
+                Stats_IncrementStat( attacker, "weapon_kill_stats", "marvins", 1.0,source )
 
             if (IsPilot(victim) && victim.pilotEjecting )
 		        Stats_IncrementStat( attacker, "weapon_kill_stats", "ejecting_pilots", 1.0,source )
@@ -845,8 +940,13 @@ function HandleWeaponKillStats( victim, attacker, damageInfo ) {
                 Stats_IncrementStat( attacker, "weapon_kill_stats", "titansTotal", 1.0,source )
                 Stats_IncrementStat( attacker, "weapon_kill_stats", "npcTitans_" + titanName, 1.0,source )
             }
-            if ( IsValidHeadShot(damageInfo,victim ) )
+            if ( IsValidHeadShot( damageInfo, victim ) )
+            {
+                if( victim.IsPlayer() )
+                    Stats_IncrementStat( attacker, "kill_stats", "pilot_headshots_total", 1.0 )
+
 		        Stats_IncrementStat( attacker, "weapon_stats", "headshots",  1.0, source )
+            }
         }
     }
 }

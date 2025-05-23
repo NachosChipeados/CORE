@@ -894,9 +894,6 @@ function PostDeathThread( player, damageInfo )
 
 	local attacker = damageInfo.GetAttacker()
 	local methodOfDeath = damageInfo.GetDamageSourceIdentifier()
-
-
-
 	local attackerViewIndex = attacker.GetIndexForEntity()
 
 	local timeSinceAttackerSpawned = attacker.GetTimeSinceSpawning()
@@ -914,7 +911,7 @@ function PostDeathThread( player, damageInfo )
 	local replayTime = CalculateLengthOfKillReplay( player, methodOfDeath )
 	player.watchingKillreplayEndTime = Time() + replayTime
 
-	local shouldDoReplay = ShouldDoReplay( player, attacker )
+	local shouldDoReplay = ShouldDoReplay( player, attacker, replayTime )
 
 	local replayTracker = {}
 	replayTracker.validTime <- null
@@ -2957,10 +2954,7 @@ function FinalPlayerUpdate( player )
 		return
 	player.s.ranFinalPlayerUpdate <- true
 
-
-
 	SaveScoreForMapStars( player )
-
 }
 
 function WaitForDisconnectCompleted( player )
@@ -3529,6 +3523,14 @@ function SaveScoreForMapStars( player )
 		default:
 			Assert( 0, "Unhandled mode in SaveScoreForMapStars()" )
 			return
+	}
+
+	local bestScore = player.GetPersistentVar( "mapStars[" + GetMapName() + "].bestScore[" + GameRules.GetGameMode() + "]" )
+
+	if (score > bestScore)
+	{
+		player.SetPersistentVar( "mapStars[" + GetMapName() + "].previousBestScore[" + GameRules.GetGameMode() + "]", bestScore )
+		player.SetPersistentVar( "mapStars[" + GetMapName() + "].bestScore[" + GameRules.GetGameMode() + "]", score )
 	}
 }
 

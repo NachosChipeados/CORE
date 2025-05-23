@@ -43,33 +43,8 @@ function OpenDirectConnectDialog_Activate( button )
     dialogData.detailsMessage <- "#DIRECT_CONNECT_MESSAGE"
 
 	OpenChoiceDialog( dialogData, GetMenu( "DirectConnectDialog" ) )
-	// local inputs = []
-	// 	// Gamepad
-	// inputs.append( BUTTON_A )
-	// inputs.append( BUTTON_START )
-
-	// // Keyboard/Mouse
-	// inputs.append( KEY_ENTER )
-
-	// foreach ( input in inputs )
-	// 	RegisterButtonPressedCallback( input, ConnectToDirectServer )
 }
 
-function ConnectToDirectServer( button )
-{
-	if ( !uiGlobal.activeDialog )
-		return
-
-    local str = uiGlobal.activeDialog.GetChild( "LblConnectTo" ).GetTextEntryUTF8Text()
-
-	if(str == "")
-		return
-
-    DeregisterButtonPressedCallback( KEY_ENTER, OnSearchBoxLooseFocus )
-
-	ClientCommand( "connect " + str )
-	CloseDialog( true )
-}
 
 function InitServerBrowserMenu( menu )
 {
@@ -268,12 +243,10 @@ function FilterServerList()
         if ( server.version == "" )
             continue
 
-        local r1dVersionFull = GetR1DVersion()
-        local r1dVersion = r1dVersionFull.slice(0, r1dVersionFull.find(" "))
+        local r1dVersion = GetMinimumR1DVersion()
 
-        if ( r1dVersion != "dev" )
-            if( CompareSemver( server.version, r1dVersion ) < 0 )
-                continue
+        if( CompareSemver( server.version, r1dVersion ) < 0 )
+            continue
 
         if (file.useSearch)
         {
@@ -314,8 +287,8 @@ function UpdateShownPage()
 
         local trimmed_hostname = server.host_name
 
-        if ( server.host_name.len() > 42 )
-            trimmed_hostname = server.host_name.slice(0, 42) + "..."
+        // if ( server.host_name.len() > 42 )
+        //     trimmed_hostname = server.host_name.slice(0, 42) + "..."
 
         if ( StringContains( server.host_name, "#" ) )
         {
@@ -366,8 +339,6 @@ function OnServerButtonClicked(button)
 
     uiGlobal.currentServerChoice <- serverIndex
 
-
-
 	local dialogData = {}
 	dialogData.header <- "#ENTER_PASSWORD_HEADER"
     dialogData.detailsMessage <- "#ENTER_PASSWORD_MESSAGE"
@@ -379,24 +350,12 @@ function OnServerButtonClicked(button)
         try {
             DeregisterMouseWheelCallbacks()
         } catch(e) { }
+
+        if ( server.map_name == "mp_lobby" )
+            AdvanceMenu( GetMenu( "LobbyMenu" ) )
+
         ClientCommand( "connect " + server.ip + ":" + server.port )
     }
-}
-
-
-function OnServerSelected()
-{
-    ConnectToServer()
-}
-
-function ConnectToServer()
-{
-    if (uiGloba.currentServerChoice >= uiGlobal.serversArrayFiltered.len())
-        return
-
-   local server = uiGlobal.serversArrayFiltered[uiGlobal.currentServerChoice]
-
-    ClientCommand( "connect " + server.ip + ":" + server.port )
 }
 
 function OnScrollDown()
@@ -680,7 +639,7 @@ function RegisterMouseWheelCallbacks()
         RegisterButtonPressedCallback( MOUSE_WHEEL_UP, OnMouseWheelUp )
         RegisterButtonPressedCallback( MOUSE_WHEEL_DOWN, OnMouseWheelDown )
     } catch ( e )
-    { 
+    {
         DeregisterMouseWheelCallbacks()
         RegisterMouseWheelCallbacks()
     }
@@ -708,6 +667,8 @@ function OnDirectConnectDialogButtonConnect_Activate( button )
         return
 
     DeregisterMouseWheelCallbacks()
+
+    AdvanceMenu( GetMenu( "LobbyMenu" ) )
 
     ClientCommand( "connect " + str )
 	CloseDialog( true )
@@ -738,6 +699,10 @@ function OnEnterPasswordDialogButtonConnect_Activate( button )
         DeregisterMouseWheelCallbacks()
     } catch ( e )
     { }
+
+    if ( server.map_name == "mp_lobby" )
+        AdvanceMenu( GetMenu( "LobbyMenu" ) )
+
     ClientCommand( "password " + str )
     ClientCommand( "connect " + server.ip + ":" + server.port )
     CloseDialog( true )

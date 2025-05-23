@@ -371,6 +371,19 @@ function DevEverythingUnlocked()
 	return EverythingUnlockedConVarEnabled()
 }
 
+function IsPlayerEverythingUnlocked( player = null )
+{
+	// assume this is uiscript
+	if ( player == null )
+	{
+		local value = GetPersistentVar( "delta.everythingUnlocked" )
+
+		return value ? true : false
+	}
+
+	return player.GetPersistentVar( "delta.everythingUnlocked" ) ? true : false
+}
+
 function MapIsValidForPersistence( mapName )
 {
 	return PersistenceEnumValueIsValid( "maps", mapName )
@@ -452,7 +465,7 @@ function GetAllModesAndMapsCompleteData( player = null )
 
 	local currentMap = null
 	local currentMode = null
-	if ( !IsLobby() )
+	if ( !IsLobby() && !IsUI() )
 	{
 		currentMap = GetMapName()
 		currentMode = GameRules.GetGameMode()
@@ -841,15 +854,59 @@ function IsPrivateMatch()
 {
     if( !IsServer() && !IsConnected() )
         return false
-    
+
     // since vanilla will reload the playlists we can get away with using a bogus default value since it shouldn't exist
-	// this will 100% fall apart if we run loadPlaylists in mp_lobby, but should probably be fine since we always hit frontend when hosting 
+	// this will 100% fall apart if we run loadPlaylists in mp_lobby, but should probably be fine since we always hit frontend when hosting
 	if( GetCurrentPlaylistVarInt( "private_match", 2 ) == 2)
 		return GetCurrentPlaylistName() == "private_match" && GetConVarInt("sv_lobbyType") == 1
 	if( IsLobby() )
 		return GetCurrentPlaylistName() == "private_match" && GetConVarInt("sv_lobbyType") == 1
-	else 
+	else
 	{
     	return ( GetCurrentPlaylistVarInt( "private_match", 0 ) == 1 ) && ( GetConVarInt("sv_lobbyType") == 1 )
 	}
+}
+
+function FNV1A( str )
+{
+	local hash = 2166136261
+	local prime = 16777619
+
+	for ( local i = 0; i < str.len(); i++ )
+	{
+		hash = hash ^ str[i]
+		hash *= prime
+	}
+
+	return hash
+}
+
+function StringReplaceAll(original, find, replace)
+{
+    local result = ""
+    local pos = 0
+    local find_len = find.len()
+
+    if (find_len == 0)
+        return original
+
+
+    while (true)
+    {
+        local index = original.find(find, pos)
+
+        if (index == null)
+        {
+            local remaining = original.slice(pos, original.len())
+            result += remaining
+            break
+        }
+
+        local before = original.slice(pos, index);
+        result += before + replace;
+
+        pos = index + find_len;
+    }
+
+    return result;
 }

@@ -31,6 +31,7 @@ AddClientCommandCallback("OpenBurnCardMenu", ClientCommand_OpenBurnCardMenu )
 		AddClientCommandCallback( "ToggleHUD", ClientCommand_ToggleHUD )
 		AddClientCommandCallback( "ToggleOffhandLowRecharge", ClientCommand_ToggleOffhandLowRecharge )
 	}
+	AddClientCommandCallback( "UpdateProgressionOption", ClientCommand_UpdateProgressionOption )
 
 	RegisterSignal( "EndGiveLoadouts" )
 	RegisterSignal( "NewPilotOrdnance" )
@@ -60,11 +61,22 @@ AddClientCommandCallback("OpenBurnCardMenu", ClientCommand_OpenBurnCardMenu )
 }
 
 
-function ClientCommand_OpenBurnCardMenu(player, ...) 
+function ClientCommand_OpenBurnCardMenu(player, ...)
 {
 	Remote.CallFunction_UI( player, "ServerCallback_OpenBurnCardMenu" )
 
 	return true
+}
+
+function ClientCommand_UpdateProgressionOption( player, ... )
+{
+	if ( vargc != 1 )
+		return false
+
+	if ( vargv[0] == "1" )
+		player.SetPersistentVar( "delta.everythingUnlocked", 1 )
+	else if ( vargv[0] == "0" )
+		player.SetPersistentVar( "delta.everythingUnlocked", 0 )
 }
 
 function ClientCommand_ActivateBurnCard(player, ...) {
@@ -82,7 +94,7 @@ function ClientCommand_ActivateBurnCard(player, ...) {
 		SendHudMessage( player, "#BURN_CARD_IS_ACTIVE", -1, 0.4, 255, 255, 255, 255, 1.0, 2.0, 1.0 )
 		return false
 	}
-	
+
 	local cardRef = GetBurnCardFromSlot(player, index)
 	local cardIndex = GetBurnCardIndexByRef(cardRef)
 	SetPlayerBurnCardOnDeckIndex(player, index)
@@ -187,8 +199,12 @@ function SetBotPilotLoadout( player )
 	table.sidearmWeapon <- loadout.sidearm
 	table.sidearmWeaponMods <- []
 	if ( loadout.sidearmMods.len() != 0 )
-		table.sidearmWeaponMods = loadout.sidearmMods
-
+	{
+		foreach( mod in loadout.sidearmMods )
+		{
+			table.sidearmWeaponMods.append(mod)
+		}
+	}
 
 	if ( "offhandWeapons" in table && loadout.ordnance != table.offhandWeapons[0].weapon )
 		player.Signal( "NewPilotOrdnance" )
@@ -528,6 +544,7 @@ function GiveLoadouts( player )
 				CreateTitanRocketPods( soul, soul.GetTitan() )
 				GiveTitanWeaponsForPlayer( player, player )
 				SetTitanOSForPlayer( player )
+				SetDecalForTitan( player )
 			}
 			else
 			{
@@ -642,10 +659,20 @@ function SetPilotLoadout( player, isCustom, loadoutIndex )
 
 	table.secondaryWeaponMods <- []
 	table.sidearmWeaponMods <- []
+	
 
 	table.passive1 <- PassiveBitfieldFromEnum( loadout.passive1 )
 	table.passive2 <- PassiveBitfieldFromEnum( loadout.passive2 )
 
+	TableDump(loadout)
+	// loadout.sidearmMod <- null
+	if (loadout.sidearmMod)
+		table.sidearmWeaponMods.append( loadout.sidearmMod )
+
+	// if (loadout.secondaryMod)
+	// 	table.secondaryWeaponMods.append( loadout.secondaryMod )
+
+	
 	// TODO: Add support for offhand mods
 	//table.offhandWeapons[0].append( { weapon = null, mods = [] } )
 	//table.offhandWeapons[0].append( { weapon = null, mods = [] } )
@@ -761,8 +788,8 @@ function GetPersistentPilotLoadout( player, isCustom, loadoutIndex )
 			return pilotLoadouts[0] // Use default loadout if the player's persistent spawn loadout index no longer exists
 	}
 
-	if ( IsItemLocked( "pilot_custom_loadout_" + (loadoutIndex + 1), null, player ) )
-		return pilotLoadouts[0]
+	// if ( IsItemLocked( "pilot_custom_loadout_" + (loadoutIndex + 1), null, player ) )
+	// 	return pilotLoadouts[0]
 
 	local loadout = {}
 	loadout.name <- player.GetPersistentVar( "pilotLoadouts[" + loadoutIndex + "].name" )
@@ -773,6 +800,7 @@ function GetPersistentPilotLoadout( player, isCustom, loadoutIndex )
 	loadout.ordnance <- player.GetPersistentVar( "pilotLoadouts[" + loadoutIndex + "].ordnance" )
 	loadout.primaryMod <- player.GetPersistentVar( "pilotLoadouts[" + loadoutIndex + "].primaryMod" )
 	loadout.primaryAttachment <- player.GetPersistentVar( "pilotLoadouts[" + loadoutIndex + "].primaryAttachment" )
+	loadout.sidearmMod <- player.GetPersistentVar( "pilotLoadouts[" + loadoutIndex + "].sidearmMod" )
 	loadout.passive1 <- player.GetPersistentVar( "pilotLoadouts[" + loadoutIndex + "].passive1" )
 	loadout.passive2 <- player.GetPersistentVar( "pilotLoadouts[" + loadoutIndex + "].passive2" )
 	loadout.race <- player.GetPersistentVar( "pilotLoadouts[" + loadoutIndex + "].race" )
@@ -804,8 +832,8 @@ function GetPersistentTitanLoadout( player, isCustom, loadoutIndex )
 			return titanLoadouts[0] // Use default loadout if the player's persistent spawn loadout index no longer exists
 	}
 
-	if ( IsItemLocked( "titan_custom_loadout_" + (loadoutIndex + 1), null, player ) )
-		return titanLoadouts[0]
+	// if ( IsItemLocked( "titan_custom_loadout_" + (loadoutIndex + 1), null, player ) )
+	// 	return titanLoadouts[0]
 
 	local loadout = {}
 	loadout.name <- player.GetPersistentVar( "titanLoadouts[" + loadoutIndex + "].name" )
@@ -871,6 +899,8 @@ function IsValidPilotLoadoutProperty( property )
 		case "ordnance":
 		case "primaryAttachment":
 		case "primaryMod":
+		case "sidearmMod":
+		case "secondaryMod":
 		case "passive1":
 		case "passive2":
 		case "race":
@@ -999,10 +1029,10 @@ function SetLoadoutName( player, loadoutType, loadoutIndex, name )
 
 function SetLoadoutProperty( player, loadoutType, loadoutIndex, property, value )
 {
-	// printt( "=======================================================================================" )
-	// printt( "loadoutType:", loadoutType, "loadoutIndex:", loadoutIndex, "property:" , property, "value:", value )
-	// printl( "script GetPlayerArray()[0].SetPersistentVar( \"" + loadoutType + "Loadouts[" + loadoutIndex + "]." + property + "\", \"" + value + "\" )" )
-	// printt( "=======================================================================================" )
+	printt( "=======================================================================================" )
+	printt( "loadoutType:", loadoutType, "loadoutIndex:", loadoutIndex, "property:" , property, "value:", value )
+	printl( "script GetPlayerArray()[0].SetPersistentVar( \"" + loadoutType + "Loadouts[" + loadoutIndex + "]." + property + "\", \"" + value + "\" )" )
+	printt( "=======================================================================================" )
 
 	if ( !property )
 	{
@@ -1016,7 +1046,7 @@ function SetLoadoutProperty( player, loadoutType, loadoutIndex, property, value 
 	{
 		if ( !IsValidPilotLoadoutProperty( loadoutProperty ) )
 		{
-			CodeWarning( "Invalid property parameter to SetLoadoutProperty: " + loadoutProperty )
+			printt( "Invalid property parameter to SetLoadoutProperty: " + loadoutProperty )
 			return
 		}
 
@@ -1026,7 +1056,7 @@ function SetLoadoutProperty( player, loadoutType, loadoutIndex, property, value 
 	{
 		if ( !IsValidTitanLoadoutProperty( loadoutProperty ) )
 		{
-			CodeWarning( "Invalid property parameter to SetLoadoutProperty: " + loadoutProperty )
+			printt( "Invalid property parameter to SetLoadoutProperty: " + loadoutProperty )
 			return
 		}
 
@@ -1034,31 +1064,32 @@ function SetLoadoutProperty( player, loadoutType, loadoutIndex, property, value 
 	}
 	else
 	{
-		CodeWarning( "Invalid loadoutType parameter to SetLoadoutProperty: " + loadoutType )
+		printt( "Invalid loadoutType parameter to SetLoadoutProperty: " + loadoutType )
 		return
 	}
 
 	if ( loadoutIndex == null || loadoutIndex.tointeger() >= PersistenceGetArrayCount( loadoutType + "Loadouts" ) )
 	{
-		CodeWarning( "Invalid loadoutIndex parameter to SetLoadoutProperty: " + loadoutIndex )
+		printt( "Invalid loadoutIndex parameter to SetLoadoutProperty: " + loadoutIndex )
 		return
 	}
 
 	if ( value && !IsRefValid( value ) )
 	{
-		CodeWarning( "Invalid ref value parameter to SetLoadoutProperty: " + value )
+		printt( "Invalid ref value parameter to SetLoadoutProperty: " + value )
 		return
 	}
 
 	if ( !loadoutPropertyEnum || !value )
 	{
+		printt( "SetLoadoutProperty: " + loadoutType + "Loadouts[" + loadoutIndex + "]." + loadoutProperty + " = " + value )
 	}
 	else if ( !PersistenceEnumValueIsValid( loadoutPropertyEnum, value ) )
 	{
 		CodeWarning( "Invalid ref value parameter for property " + loadoutProperty + " in SetLoadoutProperty: " + value )
 		return
 	}
-//    printt("DEBUG:", player, loadoutType, loadoutIndex, loadoutProperty, value)
+   printt("DEBUG:", player, loadoutType, loadoutIndex, loadoutProperty, value)
 	if ( !ValidateLoadoutProperty( player, loadoutType, loadoutIndex, loadoutProperty, value ) )
 		return
 
@@ -1099,15 +1130,29 @@ function ValidateLoadoutProperty( player, loadoutType, loadoutIndex, property, r
 			//local type = pdef_keys[unpackedKey]
 			//printt("DEBUG: ", value, unpackedKey, type)
 			break
+		case "sidearmMod":
+			childRef = ref
+			ref = player.GetPersistentVar( loadoutType + "Loadouts[" + loadoutIndex + "].sidearm" )
+			break
 	}
 
 	// invalid attachment
 	if ( childRef && !TMPHasSubitem( ref, childRef ) )
 		return false
 
-	if ( IsItemLocked( ref, childRef, player ) )
-		return false
+	
+	if(childRef) {
+		local itemData = GetSubitemData( ref, childRef )
+		if ( itemData == null )
+			return false
 
+		if(itemData.type == itemType.PILOT_PRIMARY_MOD && itemData.displayInMenu == false)
+			return false
+		
+		if(itemData.type == itemType.PILOT_SIDEARM_MOD && itemData.displayInMenu == false)
+			return false
+
+	}
 	return true
 }
 
@@ -1179,7 +1224,7 @@ function ClientCommand_ClearNewStatus( player, ... )
 	}
 	else
 	{
-		CodeWarning( "ClientCommand_ClearNewStatus: invalid ref " + ref )
+		printt( "ClientCommand_ClearNewStatus: invalid ref " + ref )
 		return false
 	}
 
