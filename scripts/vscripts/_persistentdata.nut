@@ -279,6 +279,19 @@ if ( !IsUI() )
 				//UpdateGemDecayTime( player )
 		}
 
+		if ( initializedVersion < 22 )
+		{
+			// Add gamemode loadouts for mfdp, ps, wlts, and scv
+			InitializeNewCustomLoadout( player, 19, 1 )
+			InitializeNewCustomLoadout( player, 20, 2 )
+			InitializeNewCustomLoadout( player, 21, 1 )
+			InitializeNewCustomLoadout( player, 22, 2 )
+			InitializeNewCustomLoadout( player, 23, 1 )
+			InitializeNewCustomLoadout( player, 24, 2 )
+			InitializeNewCustomLoadout( player, 25, 1 )
+			InitializeNewCustomLoadout( player, 26, 2 )
+		}
+
 		player.SetPersistentVar( "initializedVersion", PERSISTENCE_INIT_VERSION )
 		player.SetPersistentVar( "spawnAsTitan", false )
 	}
@@ -343,6 +356,7 @@ if ( !IsUI() )
 		player.SetPersistentVar( "titanLoadouts[" + loadoutNumber + "].name", "#CUSTOM_TITAN_" + displayNum )
 		InitTitanLoadoutFromPreset( player, loadoutNumber, 0 )
 	}
+	Globalize( InitializeNewCustomLoadout )
 
 	// Get a script array from a persistent int array
 	function GetPersistentIntArray( player, variableName )

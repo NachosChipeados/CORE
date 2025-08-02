@@ -217,6 +217,14 @@ function HandleLockedMenuItem( menu, button, hideTip = false )
 			case "titan_custom_loadout_16":
 			case "pilot_custom_loadout_18":
 			case "titan_custom_loadout_18":
+			case "pilot_custom_loadout_20":
+			case "titan_custom_loadout_20":
+			case "pilot_custom_loadout_22":
+			case "titan_custom_loadout_22":
+			case "pilot_custom_loadout_24":
+			case "titan_custom_loadout_24":
+			case "pilot_custom_loadout_26":
+			case "titan_custom_loadout_26":
 				toolTipLabel.SetText( "#UNLOCKED_BY_PLAYING_GAMEMODE", UNLOCK_GAMEMODE_SLOT_1_VALUE )
 				break
 
@@ -234,6 +242,14 @@ function HandleLockedMenuItem( menu, button, hideTip = false )
 			case "titan_custom_loadout_17":
 			case "pilot_custom_loadout_19":
 			case "titan_custom_loadout_19":
+			case "pilot_custom_loadout_21":
+			case "titan_custom_loadout_21":
+			case "pilot_custom_loadout_23":
+			case "titan_custom_loadout_23":
+			case "pilot_custom_loadout_25":
+			case "titan_custom_loadout_25":
+			case "pilot_custom_loadout_27":
+			case "titan_custom_loadout_27":
 				toolTipLabel.SetText( "#UNLOCKED_BY_PLAYING_GAMEMODE", UNLOCK_GAMEMODE_SLOT_2_VALUE )
 				break
 

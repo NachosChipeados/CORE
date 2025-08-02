@@ -47,6 +47,7 @@ function InitPersistence()
         mfdp = 7
         coop = 8
         ps = 9
+        scv = 10
     }
 
     AddPersistenceEnum("gameModes", gameModes)
@@ -59,6 +60,10 @@ function InitPersistence()
 	    lts = 4
 	    mfd = 5
 	    coop = 6
+	    wlts = 7
+	    mfdp = 8
+	    ps = 9
+	    scv = 10
     }
 
     AddPersistenceEnum("gameModesWithLoadouts", gameModesWithLoadouts)
@@ -448,8 +453,8 @@ function InitPersistence()
     AddPersistenceKey("titanSpawnLoadout.isCustom", "bool")
     AddPersistenceKey("titanSpawnLoadout.index", "int")
 
-    AddPersistenceArray("pilotLoadouts", 19)
-    AddPersistenceArray("titanLoadouts", 19)
+    AddPersistenceArray("pilotLoadouts", 27)
+    AddPersistenceArray("titanLoadouts", 27)
 
     AddPersistenceKey("pilotLoadouts.name", "string")
     AddPersistenceKey("pilotLoadouts.primary", "loadoutItems")
@@ -677,7 +682,25 @@ function InitPersistence()
 	    ["burn_card_pack_4"] = 52,
 	    ["burn_card_pack_5"] = 53,
 
-	    challenges = 54
+	    challenges = 54,
+
+	    ["pilot_custom_loadout_20"] = 55,
+	    ["pilot_custom_loadout_21"] = 56,
+	    ["pilot_custom_loadout_22"] = 57,
+	    ["pilot_custom_loadout_23"] = 58,
+	    ["pilot_custom_loadout_24"] = 59,
+	    ["pilot_custom_loadout_25"] = 60,
+	    ["pilot_custom_loadout_26"] = 61,
+	    ["pilot_custom_loadout_27"] = 62,
+
+	    ["titan_custom_loadout_20"] = 63,
+	    ["titan_custom_loadout_21"] = 64,
+	    ["titan_custom_loadout_22"] = 65,
+	    ["titan_custom_loadout_23"] = 66,
+	    ["titan_custom_loadout_24"] = 67,
+	    ["titan_custom_loadout_25"] = 68,
+	    ["titan_custom_loadout_26"] = 69,
+	    ["titan_custom_loadout_27"] = 70
     }
 
     AddPersistenceEnum("unlockRefs", unlockRefs)

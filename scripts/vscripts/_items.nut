@@ -281,6 +281,24 @@ function main()
 	unlockLevels[ "mp_titanweapon_shotgun" ]				<- 36
 	unlockLevels[ "mp_weapon_mega1" ]						<- 30
 	unlockLevels[ "mp_weapon_mega2" ]						<- 35
+
+	unlockLevels[ "pilot_custom_loadout_20"]			<- null
+	unlockLevels[ "pilot_custom_loadout_21"]			<- null
+	unlockLevels[ "pilot_custom_loadout_22"]			<- null
+	unlockLevels[ "pilot_custom_loadout_23"]			<- null
+	unlockLevels[ "pilot_custom_loadout_24"]			<- null
+	unlockLevels[ "pilot_custom_loadout_25"]			<- null
+	unlockLevels[ "pilot_custom_loadout_26"]			<- null
+	unlockLevels[ "pilot_custom_loadout_27"]			<- null
+
+	unlockLevels[ "titan_custom_loadout_20"]			<- null
+	unlockLevels[ "titan_custom_loadout_21"]			<- null
+	unlockLevels[ "titan_custom_loadout_22"]			<- null
+	unlockLevels[ "titan_custom_loadout_23"]			<- null
+	unlockLevels[ "titan_custom_loadout_24"]			<- null
+	unlockLevels[ "titan_custom_loadout_25"]			<- null
+	unlockLevels[ "titan_custom_loadout_26"]			<- null
+	unlockLevels[ "titan_custom_loadout_27"]			<- null
 }
 
 function InitItems()
@@ -1795,6 +1813,14 @@ function IsItemLocked( ref, childRef = null, player = null )
 		case "pilot_custom_loadout_17":
 		case "pilot_custom_loadout_18":
 		case "pilot_custom_loadout_19":
+		case "pilot_custom_loadout_20":
+		case "pilot_custom_loadout_21":
+		case "pilot_custom_loadout_22":
+		case "pilot_custom_loadout_23":
+		case "pilot_custom_loadout_24":
+		case "pilot_custom_loadout_25":
+		case "pilot_custom_loadout_26":
+		case "pilot_custom_loadout_27":
 			if ( IsItemLocked( "edit_pilots", null, player ) )
 				return true
 
@@ -1812,6 +1838,14 @@ function IsItemLocked( ref, childRef = null, player = null )
 		case "titan_custom_loadout_17":
 		case "titan_custom_loadout_18":
 		case "titan_custom_loadout_19":
+		case "titan_custom_loadout_20":
+		case "titan_custom_loadout_21":
+		case "titan_custom_loadout_22":
+		case "titan_custom_loadout_23":
+		case "titan_custom_loadout_24":
+		case "titan_custom_loadout_25":
+		case "titan_custom_loadout_26":
+		case "titan_custom_loadout_27":
 			if ( IsItemLocked( "edit_titans", null, player ) )
 				return true
 	}
@@ -1873,6 +1907,38 @@ function IsItemLocked( ref, childRef = null, player = null )
 		case "pilot_custom_loadout_19":
 		case "titan_custom_loadout_19":
 			return gameModesPlayed["coop"] < UNLOCK_GAMEMODE_SLOT_2_VALUE
+
+		case "pilot_custom_loadout_20":
+		case "titan_custom_loadout_20":
+			return gameModesPlayed["wlts"] < UNLOCK_GAMEMODE_SLOT_1_VALUE
+
+		case "pilot_custom_loadout_21":
+		case "titan_custom_loadout_21":
+			return gameModesPlayed["wlts"] < UNLOCK_GAMEMODE_SLOT_2_VALUE
+
+		case "pilot_custom_loadout_22":
+		case "titan_custom_loadout_22":
+			return gameModesPlayed["mfdp"] < UNLOCK_GAMEMODE_SLOT_1_VALUE
+
+		case "pilot_custom_loadout_23":
+		case "titan_custom_loadout_23":
+			return gameModesPlayed["mfdp"] < UNLOCK_GAMEMODE_SLOT_2_VALUE
+
+		case "pilot_custom_loadout_24":
+		case "titan_custom_loadout_24":
+			return gameModesPlayed["ps"] < UNLOCK_GAMEMODE_SLOT_1_VALUE
+
+		case "pilot_custom_loadout_25":
+		case "titan_custom_loadout_25":
+			return gameModesPlayed["ps"] < UNLOCK_GAMEMODE_SLOT_2_VALUE
+
+		case "pilot_custom_loadout_26":
+		case "titan_custom_loadout_26":
+			return gameModesPlayed["scv"] < UNLOCK_GAMEMODE_SLOT_1_VALUE
+
+		case "pilot_custom_loadout_27":
+		case "titan_custom_loadout_27":
+			return gameModesPlayed["scv"] < UNLOCK_GAMEMODE_SLOT_2_VALUE
 
 	}
 
